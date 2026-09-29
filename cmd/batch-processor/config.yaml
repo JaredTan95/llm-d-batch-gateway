@@ -10,6 +10,12 @@ work_dir_size_limit: "10Gi"
 input_file_disk_budget_percent: 10
 # Must match file_api.max_size_bytes in the API server configuration.
 input_file_max_size_bytes: 209715200
+
+# Additional deployment-specific inference paths. Standard OpenAI endpoints
+# are always allowed. This list must match batch_api.extra_endpoints on the API server.
+# extra_endpoints:
+#   - "/v1/classify"
+#   - "/v1/pooling"
 queue_time_bucket:
   start: 0.1
   factor: 2
