@@ -1085,32 +1085,18 @@ def collect_aimd_metrics(context, namespace, start_time, end_time):
 
 
 def collect_flow_control_metrics(context, namespace, start_time, end_time):
-    """Collect EPP flow control metrics from Prometheus.
-
-    Router v0.9.0 introduced the ``llm_d_epp_*`` names, v0.9-v0.10
-    emitted both metric families, and v0.11 removed the legacy names.
-    The GIE v1.5.0 sim benchmark still emits ``inference_extension_*``,
-    so select the available family in the scenario namespace once and use
-    it for all queries.
-    """
+    """Collect namespaced EPP metrics, preferring Router names over legacy GIE names."""
     metrics = {}
     namespace_selector = f'{{namespace={json.dumps(namespace)}}}'
 
     # Pool saturation (0-1 ratio of flow control capacity used)
     metric_prefix = "llm_d_epp"
-    saturation_query = (
-        f"avg({metric_prefix}_flow_control_pool_saturation{namespace_selector})"
-    )
-    results = query_prometheus(context, namespace, saturation_query, start_time, end_time)
-    if not results:
-        legacy_prefix = "inference_extension"
-        legacy_query = (
-            f"avg({legacy_prefix}_flow_control_pool_saturation{namespace_selector})"
-        )
-        legacy_results = query_prometheus(context, namespace, legacy_query, start_time, end_time)
-        if legacy_results:
-            metric_prefix = legacy_prefix
-            results = legacy_results
+    for candidate_prefix in (metric_prefix, "inference_extension"):
+        saturation_query = f"avg({candidate_prefix}_flow_control_pool_saturation{namespace_selector})"
+        results = query_prometheus(context, namespace, saturation_query, start_time, end_time)
+        if results:
+            metric_prefix = candidate_prefix
+            break
     if results:
         values = [float(v[1]) for v in results[0].get("values", []) if v[1] != "NaN"]
         if values:
